@@ -1,31 +1,43 @@
 #include <iostream>
-#include "ClassUnit.h"
-#include "MethodUnit.h"
-#include "PrintOperatorUnit.h"
+#include <fstream>
+#include "IFactory.h"
+#include "examples.h"
 
-std::string generateProgram() {
-    ClassUnit myClass( "MyClass" );
-    myClass.add(
-        std::make_shared< MethodUnit >( "testFunc1", "void", 0 ),
-        ClassUnit::PUBLIC
-    );
-    myClass.add(
-        std::make_shared< MethodUnit >( "testFunc2", "void", MethodUnit::STATIC ),
-        ClassUnit::PRIVATE
-    );
-    myClass.add(
-        std::make_shared< MethodUnit >( "testFunc3", "void", MethodUnit::VIRTUAL | MethodUnit::CONST ),
-        ClassUnit::PUBLIC
-    );
-
-    auto method = std::make_shared< MethodUnit >( "testFunc4", "void", MethodUnit::STATIC );
-    method->add( std::make_shared< PrintOperatorUnit >( R"(Hello, world!\n)" ) );
-    myClass.add( method, ClassUnit::PROTECTED );
-
-    return myClass.compile();
+void printSection( const std::string& title, const std::string& code )
+{
+    std::cout << "\n[" << title << "]\n" << code;
 }
 
-int main() {
-    std::cout << generateProgram() << std::endl;
+void printLanguageExamples( IFactory::Language lang )
+{
+    const auto factory = IFactory::create( lang );
+
+    std::cout << "\n " << factory->getLanguageName() << " Code Examples\n";
+
+    printSection( "Regular Class",   examples::renderRegularClass( lang ) );
+    printSection( "Final Class",     examples::renderFinalClass( lang ) );
+    printSection( "Abstract Class",  examples::renderAbstractClass( lang ) );
+    printSection( "Static Methods",  examples::renderStaticExample( lang ) );
+    printSection( "Cross-Lang Demo", examples::renderIncorrectExamples( lang ) );
+}
+
+int main()
+{
+    printLanguageExamples( IFactory::Language::Cpp );
+    printLanguageExamples( IFactory::Language::CSharp );
+    printLanguageExamples( IFactory::Language::Java );
+
+    for ( auto [lang, file] : std::initializer_list<std::pair<IFactory::Language, const char*>>{
+              { IFactory::Language::CSharp, "generated.cs"   },
+              { IFactory::Language::Java,   "generated.java" } } )
+    {
+        const auto factory = IFactory::create( lang );
+        std::string code = examples::renderAbstractClass( lang ) + "\n"
+                         + examples::renderFinalClass( lang );
+        std::ofstream f( file );
+        f << factory->wrap( code );
+        std::cout << "\n[wrote] " << file << "\n";
+    }
+
     return 0;
 }
